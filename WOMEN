@@ -1,0 +1,73 @@
+game.StarterGui:SetCore("SendNotification", {
+    Title = "Thị trấn phụ nữ";
+    Text = "Đang trên đường tới...";
+    Duration = 5;
+})
+game.StarterGui:SetCore("SendNotification", {
+    Title = "Women's Town";
+    Text = "On the way...";
+    Duration = 5;
+})
+-- Toạ độ đích
+local targetPosition = Vector3.new(5934.33, 670.50, 259.52)
+
+
+local moveStep = 70
+local timeStep = 0.2
+
+-- Kích thước của phiến block
+local blockSize = Vector3.new(10, 1, 10)
+
+-- Người chơi
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+
+-- Tạo phiến block
+local function createBlock()
+    local block = Instance.new("Part")
+    block.Size = blockSize
+    block.Anchored = true
+    block.CanCollide = true
+    block.Material = Enum.Material.SmoothPlastic
+    block.BrickColor = BrickColor.new("Bright blue") -- Màu sắc của phiến block
+    block.Position = humanoidRootPart.Position - Vector3.new(0, 5, 0) -- Đặt ở dưới người chơi
+    block.Parent = workspace
+    return block
+end
+
+-- Hàm để di chuyển từ từ
+local function moveToPosition(targetPos)
+    local currentPos = humanoidRootPart.Position
+    local distance = (targetPos - currentPos).Magnitude
+
+    -- Tạo phiến block
+    local block = createBlock()
+
+    -- Vòng lặp để di chuyển và cập nhật vị trí phiến block
+    while distance > moveStep do
+        -- Tính hướng di chuyển
+        local direction = (targetPos - currentPos).Unit
+        -- Di chuyển theo hướng mỗi bước moveStep
+        humanoidRootPart.CFrame = humanoidRootPart.CFrame + direction * moveStep
+
+        -- Cập nhật vị trí phiến block theo người chơi
+        block.Position = humanoidRootPart.Position - Vector3.new(0, 5, 0) -- Đặt ở dưới người chơi
+
+        -- Cập nhật vị trí và khoảng cách mới
+        currentPos = humanoidRootPart.Position
+        distance = (targetPos - currentPos).Magnitude
+
+        -- Chờ một khoảng thời gian trước khi tiếp tục
+        wait(timeStep)
+    end
+
+    -- Di chuyển phần cuối đến vị trí chính xác
+    humanoidRootPart.CFrame = CFrame.new(targetPos)
+
+    -- Biến mất phiến block
+    block:Destroy()
+end
+
+-- Bắt đầu di chuyển
+moveToPosition(targetPosition)
