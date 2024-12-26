@@ -8,66 +8,66 @@ game.StarterGui:SetCore("SendNotification", {
     Text = "On the way...";
     Duration = 5;
 })
--- Toạ độ đích
-local targetPosition = Vector3.new(5934.33, 670.50, 259.52)
 
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
 
-local moveStep = 70
-local timeStep = 0.2
+-- Tùy chỉnh tọa độ tại đây
+local teleportPosition = Vector3.new(5661.53, 1040, -334.96) -- Tọa độ teleport
+local lungeTargetPosition = Vector3.new(5291.67, 1005.35, 385.56) -- Tọa độ lướt
 
--- Kích thước của phiến block
-local blockSize = Vector3.new(10, 1, 10)
+-- Tốc độ lướt
+local lungeSpeed = 300 -- Tốc độ lướt (cao = nhanh)
 
--- Người chơi
-local player = game.Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-
--- Tạo phiến block
-local function createBlock()
-    local block = Instance.new("Part")
-    block.Size = blockSize
-    block.Anchored = true
-    block.CanCollide = true
-    block.Material = Enum.Material.SmoothPlastic
-    block.BrickColor = BrickColor.new("Bright blue") -- Màu sắc của phiến block
-    block.Position = humanoidRootPart.Position - Vector3.new(0, 5, 0) -- Đặt ở dưới người chơi
-    block.Parent = workspace
-    return block
+-- Hàm tính khoảng cách
+local function calculateDistance(pos1, pos2)
+    return (pos1 - pos2).Magnitude
 end
 
--- Hàm để di chuyển từ từ
-local function moveToPosition(targetPos)
-    local currentPos = humanoidRootPart.Position
-    local distance = (targetPos - currentPos).Magnitude
+-- Teleport đến vị trí
+local function teleportToPosition(position)
+    local character = player.Character or player.CharacterAdded:Wait()
+    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+    humanoidRootPart.CFrame = CFrame.new(position)
+end
 
-    -- Tạo phiến block
-    local block = createBlock()
+-- Lướt đến vị trí
+local function performLunge(targetPosition)
+    local character = player.Character or player.CharacterAdded:Wait()
+    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+    local startPosition = humanoidRootPart.Position
+    local direction = (targetPosition - startPosition).Unit -- Hướng lướt
+    local distance = (targetPosition - startPosition).Magnitude -- Khoảng cách đến mục tiêu
+    local startTime = tick()
 
-    -- Vòng lặp để di chuyển và cập nhật vị trí phiến block
-    while distance > moveStep do
-        -- Tính hướng di chuyển
-        local direction = (targetPos - currentPos).Unit
-        -- Di chuyển theo hướng mỗi bước moveStep
-        humanoidRootPart.CFrame = humanoidRootPart.CFrame + direction * moveStep
-
-        -- Cập nhật vị trí phiến block theo người chơi
-        block.Position = humanoidRootPart.Position - Vector3.new(0, 5, 0) -- Đặt ở dưới người chơi
-
-        -- Cập nhật vị trí và khoảng cách mới
-        currentPos = humanoidRootPart.Position
-        distance = (targetPos - currentPos).Magnitude
-
-        -- Chờ một khoảng thời gian trước khi tiếp tục
-        wait(timeStep)
+    -- Lướt đến tọa độ mục tiêu
+    while (tick() - startTime < distance / lungeSpeed) do
+        humanoidRootPart.CFrame = humanoidRootPart.CFrame + direction * (lungeSpeed * RunService.Heartbeat:Wait())
     end
-
-    -- Di chuyển phần cuối đến vị trí chính xác
-    humanoidRootPart.CFrame = CFrame.new(targetPos)
-
-    -- Biến mất phiến block
-    block:Destroy()
 end
 
--- Bắt đầu di chuyển
-moveToPosition(targetPosition)
+-- Logic chính
+local function executeMovement()
+    local character = player.Character or player.CharacterAdded:Wait()
+    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+    local currentPosition = humanoidRootPart.Position
+
+    -- Tính khoảng cách
+    local distanceToLungeFromCurrent = calculateDistance(currentPosition, lungeTargetPosition) -- Khoảng cách từ vị trí hiện tại đến tọa độ lướt
+    local distanceToLungeFromTeleport = calculateDistance(teleportPosition, lungeTargetPosition) -- Khoảng cách từ tọa độ teleport đến tọa độ lướt
+
+    -- So sánh và thực hiện hành động
+    if distanceToLungeFromCurrent < distanceToLungeFromTeleport then
+        -- Nếu gần hơn, chỉ lướt đến tọa độ lướt
+        performLunge(lungeTargetPosition)
+    else
+        -- Nếu xa hơn, teleport đến tọa độ teleport rồi lướt
+        teleportToPosition(teleportPosition)
+        task.wait(0.1) -- Đợi một chút trước khi lướt
+        performLunge(lungeTargetPosition)
+    end
+end
+
+-- Chạy script
+executeMovement()
